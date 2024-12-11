@@ -1,0 +1,240 @@
+<html><head><base href="." ></base>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compositor de Notas Musicales</title>
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        .note-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            min-height: 50px;
+            font-size: 1.2em;
+            word-wrap: break-word;
+        }
+
+        .buttons-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .control-buttons button {
+            background: #f44336;
+        }
+
+        .octave-controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .octave-controls button {
+            background: #2196F3;
+        }
+
+        .selected {
+            background: #ff9800 !important;
+        }
+
+        .minor-note {
+            background: #9c27b0;
+        }
+    </style>
+</head>
+<body>
+    <button id="installButton" style="display: none;">Instalar App</button>
+
+    <div class="container">
+        <h2>Compositor de Notas Musicales</h2>
+        <div class="note-display" id="originalNotes">Notas originales aparecerán aquí</div>
+        <div class="note-display" id="transposedNotes">Notas transpuestas aparecerán aquí</div>
+
+        <div class="buttons-container">
+            <!-- Notas Mayores -->
+            <button onclick="addNote('DO')">DO</button>
+            <button onclick="addNote('DO#')">DO#</button>
+            <button onclick="addNote('RE')">RE</button>
+            <button onclick="addNote('RE#')">RE#</button>
+            <button onclick="addNote('MI')">MI</button>
+            <button onclick="addNote('FA')">FA</button>
+            <button onclick="addNote('FA#')">FA#</button>
+            <button onclick="addNote('SOL')">SOL</button>
+            <button onclick="addNote('SOL#')">SOL#</button>
+            <button onclick="addNote('LA')">LA</button>
+            <button onclick="addNote('LA#')">LA#</button>
+            <button onclick="addNote('SI')">SI</button>
+            
+            <!-- Notas Menores -->
+            <button class="minor-note" onclick="addNote('DOm')">DOm</button>
+            <button class="minor-note" onclick="addNote('DO#m')">DO#m</button>
+            <button class="minor-note" onclick="addNote('REm')">REm</button>
+            <button class="minor-note" onclick="addNote('RE#m')">RE#m</button>
+            <button class="minor-note" onclick="addNote('MIm')">MIm</button>
+            <button class="minor-note" onclick="addNote('FAm')">FAm</button>
+            <button class="minor-note" onclick="addNote('FA#m')">FA#m</button>
+            <button class="minor-note" onclick="addNote('SOLm')">SOLm</button>
+            <button class="minor-note" onclick="addNote('SOL#m')">SOL#m</button>
+            <button class="minor-note" onclick="addNote('LAm')">LAm</button>
+            <button class="minor-note" onclick="addNote('LA#m')">LA#m</button>
+            <button class="minor-note" onclick="addNote('SIm')">SIm</button>
+        </div>
+
+        <div class="control-buttons">
+            <button onclick="deleteLastNote()">Borrar última nota</button>
+            <button onclick="clearNotes()">Borrar todo</button>
+        </div>
+
+        <div class="octave-controls">
+            <button onclick="transposeNotes(1)">+ Subir tono</button>
+            <button onclick="transposeNotes(-1)">- Bajar tono</button>
+        </div>
+    </div>
+
+    <script>
+        let notes = [];
+        let transposition = 0;
+        const scale = [
+            'DO', 'DO#', 'RE', 'RE#', 'MI', 'FA', 'FA#', 'SOL', 'SOL#', 'LA', 'LA#', 'SI',
+            'DOm', 'DO#m', 'REm', 'RE#m', 'MIm', 'FAm', 'FA#m', 'SOLm', 'SOL#m', 'LAm', 'LA#m', 'SIm'
+        ];
+
+        function addNote(note) {
+            notes.push(note);
+            updateDisplay();
+        }
+
+        function deleteLastNote() {
+            notes.pop();
+            updateDisplay();
+        }
+
+        function clearNotes() {
+            notes = [];
+            transposition = 0;
+            updateDisplay();
+        }
+
+        function transposeNotes(direction) {
+            transposition += direction;
+            updateDisplay();
+        }
+
+        function transposeNote(note, steps) {
+            // Separar la nota de su cualidad (mayor/menor)
+            const isMinor = note.endsWith('m');
+            const baseNote = isMinor ? note.slice(0, -1) : note;
+            
+            // Encontrar el índice base (ignorando las notas menores)
+            const baseScale = scale.slice(0, 12);
+            const index = baseScale.indexOf(baseNote);
+            if (index === -1) return note;
+            
+            // Calcular la nueva posición
+            let newIndex = (index + steps) % 12;
+            while (newIndex < 0) newIndex += 12;
+            
+            // Retornar la nota transpuesta manteniendo su cualidad
+            return baseScale[newIndex] + (isMinor ? 'm' : '');
+        }
+
+        function updateDisplay() {
+            const originalDisplay = document.getElementById('originalNotes');
+            const transposedDisplay = document.getElementById('transposedNotes');
+
+            originalDisplay.textContent = notes.join(' ');
+            
+            const transposedNotes = notes.map(note => transposeNote(note, transposition));
+            transposedDisplay.textContent = transposedNotes.join(' ');
+        }
+
+        // Inicialización
+        updateDisplay();
+    </script>
+    <script>
+        let deferredPrompt;
+      
+        window.addEventListener('beforeinstallprompt', (event) => {
+          // Previene la aparición automática del diálogo
+          event.preventDefault();
+          // Guarda el evento para usarlo más tarde
+          deferredPrompt = event;
+      
+          // Muestra el botón de instalación
+          const installButton = document.getElementById('installButton');
+          installButton.style.display = 'block';
+      
+          installButton.addEventListener('click', () => {
+            // Muestra el diálogo de instalación
+            deferredPrompt.prompt();
+      
+            // Espera la respuesta del usuario
+            deferredPrompt.userChoice.then((choiceResult) => {
+              if (choiceResult.outcome === 'accepted') {
+                console.log('El usuario aceptó la instalación');
+              } else {
+                console.log('El usuario rechazó la instalación');
+              }
+              // Limpia el prompt diferido
+              deferredPrompt = null;
+            });
+          });
+        });
+      
+        // Opcional: mensaje cuando se instala la PWA
+        window.addEventListener('appinstalled', () => {
+          console.log('¡Aplicación instalada!');
+        });
+      </script>
+      
+<H1>CREADO POR SAUL<H1>
+</body></html>
